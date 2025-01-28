@@ -21,6 +21,34 @@ interface LeadershipTableProps {
 export function LeadershipTable({ data }: LeadershipTableProps) {
   const tableRef = React.useRef<HTMLDivElement>(null);
 
+  // Ordenar os dados por leader_id
+  const sortedData = React.useMemo(() => {
+    console.log('Sorting data:', data.length, 'items');
+    return [...data].sort((a, b) => {
+      const aId = Number(a.leader_id);
+      const bId = Number(b.leader_id);
+      return aId - bId;
+    });
+  }, [data]);
+
+  // Calcular totais
+  const totals = React.useMemo(() => {
+    console.log('Calculating totals for', data.length, 'items');
+    return data.reduce((acc, item) => {
+      return {
+        meta: acc.meta + Number(item.meta),
+        completed: acc.completed + Number(item.completed)
+      };
+    }, { meta: 0, completed: 0 });
+  }, [data]);
+
+  const totalPercentage = Math.round((totals.completed / totals.meta) * 100) || 0;
+
+  // Log quando os dados mudam
+  React.useEffect(() => {
+    console.log('LeadershipTable received new data:', data.length, 'items');
+  }, [data]);
+
   const captureScreenshot = async () => {
     if (tableRef.current) {
       try {
@@ -72,20 +100,33 @@ export function LeadershipTable({ data }: LeadershipTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((item) => (
-              <TableRow 
-                key={item.id}
-                className={item.percentage >= 100 ? "bg-green-500" : ""}
-              >
-                <TableCell className={item.percentage >= 100 ? "text-black" : ""}>{item.leader_id}</TableCell>
-                <TableCell className={`font-medium ${item.percentage >= 100 ? "text-black" : ""}`}>{item.name}</TableCell>
-                <TableCell className={`text-right ${item.percentage >= 100 ? "text-black" : ""}`}>{item.meta}</TableCell>
-                <TableCell className={`text-right ${item.percentage >= 100 ? "text-black" : ""}`}>{item.completed}</TableCell>
-                <TableCell className={`text-right ${item.percentage >= 100 ? "text-black font-bold" : getPercentageColor(item.percentage)}`}>
-                  {item.percentage}%
-                </TableCell>
-              </TableRow>
-            ))}
+            {sortedData.map((item) => {
+              console.log('Rendering row for:', item.name, 'completed:', item.completed);
+              return (
+                <TableRow 
+                  key={item.id}
+                  className={Number(item.percentage) >= 100 ? "bg-green-500" : ""}
+                >
+                  <TableCell className={Number(item.percentage) >= 100 ? "text-black" : ""}>{item.leader_id}</TableCell>
+                  <TableCell className={`font-medium ${Number(item.percentage) >= 100 ? "text-black" : ""}`}>{item.name}</TableCell>
+                  <TableCell className={`text-right ${Number(item.percentage) >= 100 ? "text-black" : ""}`}>{item.meta}</TableCell>
+                  <TableCell className={`text-right ${Number(item.percentage) >= 100 ? "text-black" : ""}`}>{item.completed}</TableCell>
+                  <TableCell className={`text-right ${Number(item.percentage) >= 100 ? "text-black font-bold" : getPercentageColor(Number(item.percentage))}`}>
+                    {item.percentage}%
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {/* Linha de totais */}
+            <TableRow className="font-bold bg-gray-100">
+              <TableCell>Total</TableCell>
+              <TableCell></TableCell>
+              <TableCell className="text-right">{totals.meta}</TableCell>
+              <TableCell className="text-right">{totals.completed}</TableCell>
+              <TableCell className={`text-right ${totalPercentage >= 100 ? "text-green-500" : getPercentageColor(totalPercentage)}`}>
+                {totalPercentage}%
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </div>

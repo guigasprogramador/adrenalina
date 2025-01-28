@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { LeadershipTable } from "@/components/LeadershipTable";
 import { MetricsChart } from "@/components/MetricsChart";
 import { StatCard } from "@/components/StatCard"; // Update the import to use the new StatCard
@@ -21,62 +21,112 @@ const Index = () => {
   const [newMeta, setNewMeta] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [updateCounter, setUpdateCounter] = useState(0); // Adicionar contador de atualizações
 
   useEffect(() => {
     fetchLeaders();
   }, []);
 
   const fetchLeaders = async () => {
+    console.log('Buscando líderes...');
     try {
       const { data: leaders, error } = await supabase
         .from('leaders')
         .select('*')
         .order('leader_id', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar líderes:', error);
+        throw error;
+      }
+
+      if (leaders && leaders.length > 0) {
+        console.log('Estrutura detalhada do primeiro líder:', JSON.stringify(leaders[0], null, 2));
+        console.log('Colunas disponíveis:', Object.keys(leaders[0]));
+      } else {
+        console.log('Nenhum líder encontrado');
+      }
+
       setData(leaders || []);
+      return leaders;
     } catch (error) {
-      console.error('Error fetching leaders:', error);
-      toast.error('Error loading leaders data');
+      console.error('Erro ao buscar líderes:', error);
+      toast.error('Erro ao carregar dados');
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredData = data.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Atualizar quando o contador mudar
+  useEffect(() => {
+    console.log('Update counter changed:', updateCounter);
+  }, [updateCounter]);
+
+  const filteredData = useMemo(() => {
+    console.log('Filtering data:', data.length, 'items');
+    return data.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [data, searchTerm]);
+
   const stats = calculateStats(filteredData);
 
   const handleAddCompleted = async () => {
-    if (selectedLeader && newCompleted >= 0) {
-      try {
-        const updatedCompleted = isEditing ? newCompleted : selectedLeader.completed + newCompleted;
-        const updatedMeta = isEditing ? newMeta : (newMeta > 0 ? newMeta : selectedLeader.meta);
-        const updatedPercentage = Math.round((updatedCompleted / updatedMeta) * 100);
+    if (!selectedLeader) {
+      toast.error('Por favor, selecione um líder');
+      return;
+    }
 
-        const { error } = await supabase
-          .from('leaders')
-          .update({
-            completed: updatedCompleted,
-            meta: updatedMeta,
-            percentage: updatedPercentage
-          })
-          .eq('id', selectedLeader.id);
+    try {
+      const newValue = isEditing ? Number(newCompleted) : (Number(selectedLeader.completed) + Number(newCompleted));
+      const meta = Number(selectedLeader.meta);
+      
+      // Se meta é 0, cada completed vale 100%
+      const percentage = meta === 0 ? (newValue * 100) : Math.round((newValue / meta) * 100);
 
-        if (error) throw error;
+      console.log('Tentando atualização:', {
+        leader_id: selectedLeader.leader_id,
+        name: selectedLeader.name,
+        completed_atual: selectedLeader.completed,
+        novo_completed: newValue,
+        meta: meta,
+        porcentagem: percentage
+      });
 
-        await fetchLeaders();
-        toast.success('Leader data updated successfully');
-      } catch (error) {
-        console.error('Error updating leader:', error);
-        toast.error('Error updating leader data');
+      const { data, error } = await supabase
+        .from('leaders')
+        .update({ 
+          completed: newValue,
+          percentage: percentage
+        })
+        .eq('leader_id', selectedLeader.leader_id)
+        .select();
+
+      if (error) {
+        console.error('Erro do Supabase:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
       }
 
+      console.log('Resposta da atualização:', data);
+
+      await fetchLeaders();
+      setUpdateCounter(prev => prev + 1);
+      
       setNewCompleted(0);
       setNewMeta(0);
       setSelectedLeader(null);
       setIsEditing(false);
+
+      toast.success('Dados atualizados com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao atualizar líder:', error);
+      toast.error(error.message || 'Erro ao atualizar dados do líder');
     }
   };
 
@@ -244,8 +294,12 @@ const Index = () => {
                       className="w-full p-2 border rounded-md"
                       value={selectedLeader?.id || ""}
                       onChange={(e) => {
-                        const leader = data.find(l => l.id === e.target.value);
+                        const selectedId = e.target.value;
+                        console.log('Selected ID:', selectedId);
+                        const leader = data.find(l => l.id === selectedId);
+                        console.log('Found Leader:', leader);
                         setSelectedLeader(leader || null);
+                        setNewCompleted(0); // Reset the new completed value
                         if (leader && isEditing) {
                           setNewCompleted(leader.completed);
                           setNewMeta(leader.meta);
@@ -255,7 +309,7 @@ const Index = () => {
                       <option value="">Selecione um líder</option>
                       {data.map((leader) => (
                         <option key={leader.id} value={leader.id}>
-                          {leader.name}
+                          {`${leader.leader_id} - ${leader.name}`}
                         </option>
                       ))}
                     </select>

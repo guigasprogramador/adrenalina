@@ -99,61 +99,112 @@ const Index = () => {
     excelData.push(totalRow);
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
-
+    
+    // Definir largura das colunas
     const colWidths = [
       { wch: 5 },  // Seq
       { wch: 30 }, // Líderes
       { wch: 8 },  // Meta
-      { wch: 8 },  // Inscrições
-      { wch: 12 }  // Percentual
+      { wch: 10 }, // Inscrições
+      { wch: 10 }  // Percentual
     ];
     worksheet['!cols'] = colWidths;
 
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    for (let R = range.s.r; R <= range.e.r; R++) {
-      for (let C = range.s.c; C <= range.e.c; C++) {
-        const cell_address = { c: C, r: R };
-        const cell_ref = XLSX.utils.encode_cell(cell_address);
-        const cell = worksheet[cell_ref];
-        
-        if (!cell) continue;
-
-        cell.s = {
-          font: { name: "Arial", sz: 10 },
-          alignment: { horizontal: "center", vertical: "center" },
-          border: {
-            top: { style: "thin" },
-            bottom: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" }
-          }
-        };
-
-        if (R === 0) {
-          cell.s.fill = { fgColor: { rgb: "000000" }, patternType: "solid" };
-          cell.s.font = { name: "Arial", sz: 10, color: { rgb: "FFFFFF" } };
-          cell.s.alignment = { horizontal: "center" };
-        }
-
-        if (C === 4 && cell.v === "100%") {
-          cell.s.fill = { fgColor: { rgb: "92D050" }, patternType: "solid" };
-        }
-
-        if (R === range.e.r) {
-          cell.s.font = { name: "Arial", sz: 10, bold: true };
-        }
+    // Estilo do cabeçalho (fundo preto com texto verde)
+    const headerStyle = {
+      fill: { 
+        patternType: "solid",
+        fgColor: { rgb: "000000" } 
+      },
+      font: { 
+        color: { rgb: "00FF00" },
+        bold: true,
+        name: "Arial",
+        sz: 11
+      },
+      alignment: {
+        horizontal: "center",
+        vertical: "center"
+      },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
       }
+    };
+
+    // Estilo para linhas com 100% ou mais (fundo verde com texto preto)
+    const successStyle = {
+      fill: { 
+        patternType: "solid",
+        fgColor: { rgb: "00FF00" } 
+      },
+      font: { 
+        color: { rgb: "000000" },
+        bold: true,
+        name: "Arial",
+        sz: 11
+      },
+      alignment: {
+        horizontal: "center",
+        vertical: "center"
+      },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      }
+    };
+
+    // Estilo padrão para outras linhas
+    const defaultStyle = {
+      font: { 
+        name: "Arial",
+        sz: 11
+      },
+      alignment: {
+        horizontal: "center",
+        vertical: "center"
+      },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      }
+    };
+
+    // Aplicar estilos às células
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    
+    // Aplicar estilo ao cabeçalho
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_cell({ r: 0, c: C });
+      if (!worksheet[address]) continue;
+      worksheet[address].s = headerStyle;
     }
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Arena Xperience Adrenalina 2025");
-    
-    XLSX.writeFile(workbook, "arena_xperience_2025.xlsx", {
-      bookType: 'xlsx',
-      bookSST: false,
-      type: 'binary',
-      cellStyles: true
+    // Aplicar estilos às linhas de dados
+    excelData.forEach((row, idx) => {
+      if (idx === 0) return; // Pular cabeçalho
+      
+      const percentage = parseInt(row.Percentual);
+      const style = percentage >= 100 ? successStyle : defaultStyle;
+      
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_cell({ r: idx, c: C });
+        if (!worksheet[address]) continue;
+        worksheet[address].s = style;
+      }
     });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Arena Xperience 2025");
+    
+    // Salvar o arquivo
+    XLSX.writeFile(workbook, "Arena Xperience 2025.xlsx");
   };
 
   if (isLoading) {

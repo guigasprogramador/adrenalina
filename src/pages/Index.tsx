@@ -161,104 +161,133 @@ const Index = () => {
   }
 
   return (
-    <div className="container mx-auto py-10 space-y-8">
+    <div className="container mx-auto p-2 sm:p-4 space-y-4">
       <div className="flex flex-col space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Arena Xperience Adrenalina 2025</h1>
-          <Button onClick={exportToExcel} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar Excel
-          </Button>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <h1 className="text-2xl sm:text-3xl font-bold">Arena Xperience Adrenalina 2025</h1>
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <Input
-            placeholder="Buscar por líder..."
+            placeholder="Buscar por nome..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            className="w-full sm:w-64"
           />
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="default">Adicionar/Corrigir Inscrições</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {isEditing ? "Corrigir Inscrições" : "Adicionar Novas Inscrições"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="leader">Selecione o Líder</Label>
-                  <select
-                    id="leader"
-                    className="w-full p-2 border rounded-md"
-                    value={selectedLeader?.id || ""}
-                    onChange={(e) => {
-                      const leader = data.find(l => l.id === e.target.value);
-                      setSelectedLeader(leader || null);
-                      if (leader && isEditing) {
-                        setNewCompleted(leader.completed);
-                        setNewMeta(leader.meta);
-                      }
-                    }}
-                  >
-                    <option value="">Selecione um líder</option>
-                    {data.map((leader) => (
-                      <option key={leader.id} value={leader.id}>
-                        {leader.name}
-                      </option>
-                    ))}
-                  </select>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="default" className="w-full sm:w-auto">
+                  Adicionar Inscrições
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {isEditing ? "Editar Inscrições" : "Adicionar Inscrições"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="leader">Selecione o Líder</Label>
+                    <select
+                      id="leader"
+                      className="w-full p-2 border rounded-md"
+                      value={selectedLeader?.id || ""}
+                      onChange={(e) => {
+                        const leader = data.find(l => l.id === e.target.value);
+                        setSelectedLeader(leader || null);
+                        if (leader && isEditing) {
+                          setNewCompleted(leader.completed);
+                          setNewMeta(leader.meta);
+                        }
+                      }}
+                    >
+                      <option value="">Selecione um líder</option>
+                      {data.map((leader) => (
+                        <option key={leader.id} value={leader.id}>
+                          {leader.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedLeader && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="meta">Meta Total</Label>
+                        <Input
+                          id="meta"
+                          type="number"
+                          min={0}
+                          value={isEditing ? newMeta : selectedLeader.meta}
+                          onChange={(e) => setNewMeta(parseInt(e.target.value) || 0)}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="completed">
+                          {isEditing ? "Total de Inscrições" : "Novas Inscrições"}
+                        </Label>
+                        <Input
+                          id="completed"
+                          type="number"
+                          min={0}
+                          value={newCompleted}
+                          onChange={(e) => setNewCompleted(parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="flex justify-between">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsEditing(!isEditing)}
+                        >
+                          {isEditing ? "Modo Adicionar" : "Modo Edição"}
+                        </Button>
+                        <Button onClick={handleAddCompleted}>
+                          {isEditing ? "Salvar Alterações" : "Adicionar"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {selectedLeader && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="meta">Meta Total</Label>
-                      <Input
-                        id="meta"
-                        type="number"
-                        min={0}
-                        value={isEditing ? newMeta : selectedLeader.meta}
-                        onChange={(e) => setNewMeta(parseInt(e.target.value) || 0)}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="completed">
-                        {isEditing ? "Total de Inscrições" : "Novas Inscrições"}
-                      </Label>
-                      <Input
-                        id="completed"
-                        type="number"
-                        min={0}
-                        value={newCompleted}
-                        onChange={(e) => setNewCompleted(parseInt(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditing(!isEditing)}
-                      >
-                        {isEditing ? "Modo Adicionar" : "Modo Edição"}
-                      </Button>
-                      <Button onClick={handleAddCompleted}>
-                        {isEditing ? "Salvar Alterações" : "Adicionar Inscrições"}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar Excel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Exportar dados</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Label>Confirmar exportação dos dados para Excel?</Label>
+                  <Button onClick={exportToExcel}>Exportar</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-8">
-        <StatCard stats={stats} />
-        <LeadershipTable data={filteredData} />
-        <MetricsChart data={filteredData} />
+      <StatCard stats={stats} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="w-full overflow-x-auto rounded-lg border bg-white">
+          <div className="min-w-full">
+            <LeadershipTable
+              data={filteredData}
+              setSelectedLeader={setSelectedLeader}
+              setIsEditing={setIsEditing}
+            />
+          </div>
+        </div>
+        <div className="w-full h-[400px] bg-white rounded-lg border p-4">
+          <MetricsChart data={filteredData} />
+        </div>
       </div>
     </div>
   );
